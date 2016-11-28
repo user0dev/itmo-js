@@ -1,0 +1,23 @@
+#fields {
+    text-align: center;
+}
+
+#fields table {
+    border-collapse: separate;
+    display: inline-block;
+    margin: 0 10px;
+    padding: 0;
+    
+}
+
+#fields table td {
+    border: 1px solid gray;
+    width: 30px;
+    height: 30px;
+    margin: 0;
+}
+
+#fields table td:hover {
+    outline: 1px solid blue;
+    border: 1px solid blue;
+}
