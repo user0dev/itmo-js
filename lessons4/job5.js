@@ -69,7 +69,7 @@ function les4job5_3() {
     input = promptNum();
     while (input !== null) {
         arr = input.trim().split(" ");
-        if (arr.length === 2 && isIntNumber(arr[0]) && isIntNumber(arr[1]) && arr[0] > 0 && arr[1] > 0) {``
+        if (arr.length === 2 && isIntNumber(arr[0]) && isIntNumber(arr[1]) && arr[0] > 0 && arr[1] > 0) {
             break;
         }
         input = promptNum(true);
