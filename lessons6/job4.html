@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Форматирование списка продуктов</title>
+    <style type="text/css">
+        textarea {
+            width: 40%;
+            height: 300px;    
+        }
+        form {
+            text-align: center;"
+        }
+        div {
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <form>
+        <textarea id="inText">
+Сыр 200 г
+Помидоры 3 кило
+Картошка = 2,5 кг
+Сырки – 3 шт.</textarea>
+        <textarea id="outText" readonly></textarea>
+        <div>
+            <input type="button" onclick="clickToBt()" value="Преобразовать">
+        </div>
+    </form>
+    <script type="text/javascript" src="job4.js"></script>
+</body>
+</html>
