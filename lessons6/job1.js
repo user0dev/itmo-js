@@ -2,7 +2,7 @@
 
 function les6job1() {
     "use strict";
-    var input = prompt("Введите адрес эелектронной почты", ""), right;
+    var input = prompt("Введите адрес электронной почты", ""), right;
     if (input === null) {
         return;
     }
