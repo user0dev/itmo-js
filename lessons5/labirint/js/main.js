@@ -27,6 +27,7 @@ function GraphicObject(spriteIndex, pictures, cyclAnim, animPeriod) {
     if (pictures === undefined) {
         pictures = [];
     }
+    
     /*this._x = x;
     this._y = y;
     this._pictures = pictures;
@@ -37,7 +38,8 @@ var map = {
     gObjects: {},
     initGObjectsArray: function () {
         "use strict";
-        gObject.land = new GraphicObject(0, [{x: 15, y: 2}])
+        gObject.land = new GraphicObject(0, [15, 2])
+        gObject.wather = new GraphicObject(0, [14, 8])
     }
 };
 
