@@ -1,3 +1,5 @@
+/*global randomInt, isNumber, isIntNumber, randomBool */
+
 //генерация целого случайного числа. min не обязательно, тогда будет от 0 <= r < max
 function randomInt(max, min) {
     "use strict";
@@ -5,6 +7,11 @@ function randomInt(max, min) {
         min = 0;
     }
     return Math.floor(Math.random() * max) + min;
+}
+
+function randomBool() {
+    "use strict";
+    return Math.random() > 0.5;
 }
 
 //является ли аргумент числом
