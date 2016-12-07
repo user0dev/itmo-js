@@ -67,7 +67,7 @@ var player = {
     y: 0,
     element: null,
     direction: Direction.up,
-    bpText: spriteToBP(11, 0),
+    arrayForSprite: [],
     canIMove: function (dir) {
         "use strict";
         if (dir === undefined) {
@@ -76,7 +76,7 @@ var player = {
         var newX, newY;
         newX = this.x + dirToX(dir);
         newY = this.y + dirToY(dir);
-        if (map.coordCorrect(newX, newY)) {
+        if (!map.coordCorrect(newX, newY)) {
             return false;
         }
         return map.floorObjects[newY][newX].isStand();
@@ -85,31 +85,65 @@ var player = {
         "use strict";
         if (dir === undefined) {
             dir = this.direction;
+        } else {
+            this.direction = dir;
         }
         if (this.canIMove(dir)) {
             this.x += dirToX(dir);
             this.y += dirToY(dir);
+            this.changeSprite();
+            return true;
         }
+        this.changeSprite();
+        return false;
     },
-    changeDirection: function (direction) {
+    setDirection: function (direction) {
         "use strict";
         this.direction = direction;
+        this.changeSprite();
     },
     initPlayer: function () {
         "use strict";
-    },
-    changeSprite: function () {
-        "use strict";
+        function setSprites(arr, yCoord, xOffset) {
+            var i;
+            if (xOffset === undefined) {
+                xOffset = 0;
+            }
+            for (i = xOffset; i < (xOffset + 3); i += 1) {
+                arr[i] = spriteToBP(i, yCoord);
+            }
+        }
+        this.arrayForSprite[Direction.up] = [];
+        setSprites(this.arrayForSprite[Direction.up], 11);
+        this.arrayForSprite[Direction.down] = [];
+        setSprites(this.arrayForSprite[Direction.down], 8);
+        this.arrayForSprite[Direction.left] = [];
+        setSprites(this.arrayForSprite[Direction.left], 9);
+        this.arrayForSprite[Direction.right] = [];
+        setSprites(this.arrayForSprite[Direction.right], 10);
         var div;
         if (this.element === null) {
             div = document.createElement("div");
+            this.element = div;
             div.id = "player";
             map.table.appendChild(div);
-            div.style.backgroundPosition = spriteToBP(0, 10);
+            div.style.backgroundPosition = this.arrayForSprite[this.direction][0];
+            div.style.left = map.xToLeft(this.x);
+            div.style.top = map.yToTop(this.y);
+            
         }
-        switch (this.direction) {
-            case Direction.up:
-        }
+    },
+    changeSprite: function () {
+        "use strict";
+        this.element.style.backgroundPosition = this.arrayForSprite[this.direction][0];
+        this.element.style.left = map.xToLeft(this.x);
+        this.element.style.top = map.yToTop(this.y);
+    },
+    setPosition: function (x, y) {
+        "use strict";
+        this.x = x;
+        this.y = y;
+        this.changeSprite();
     }
 };
 
@@ -142,8 +176,34 @@ var map = {
         "use strict";
         return x >= 0 && y >= 0 && x < this.width && y < this.height;
     },
-    coordToPosX: function (x) {
+    xToLeft: function (x) {
         "use strict";
+        return x * 32 + "px";
+    },
+    yToTop: function (y) {
+        "use strict";
+        return y * 32 + "px";
+    },
+    oKey: function (e) {
+        "use strict";
+        switch (e.keyCode) {
+        case 39:
+        case 68:
+            player.move(Direction.right);
+            break;
+        case 38:
+        case 87:
+            player.move(Direction.up);
+            break;
+        case 37:
+        case 65:
+            player.move(Direction.left);
+            break;
+        case 40:
+        case 83:
+            player.move(Direction.down);
+            break;
+        }
     },
     initMap: function () {
         "use strict";
@@ -157,14 +217,15 @@ var map = {
             for (j = 0; j < this.width; j += 1) {
                 switch (textMap[i][j]) {
                 case "*":
-                    this.floorObjects =  new FloorObject(j, i, floorType.wall);
+                    this.floorObjects[i][j] =  new FloorObject(j, i, floorType.wall);
                     break;
                 default:
-                    this.floorObjects =  new FloorObject(j, i, floorType.floor);
+                    this.floorObjects[i][j] =  new FloorObject(j, i, floorType.floor);
                     break;
                 }
             }
         }
+        document.body.onkeydown = this.oKey;
     }
 //    initFloor: function () {
 //        "use strict";
@@ -187,7 +248,10 @@ function main() {
     
     var table, i, j, tr;
     map.initMap();
-    player.changeSprite();
+    player.initPlayer();
+    player.setPosition(0, 6);
+    player.setDirection(Direction.right);
+    //player.move();
 //    for (i = 0; i < table.rows.length; i += 1) {
 //        tr = table.rows[i];
 //        for (j = 0; j < tr.cells.length; j += 1) {
