@@ -2,9 +2,16 @@
     border-collapse: collapse;
     margin: 0;
     padding: 0;
+    position: relative;
 }
 
 * {
     margin: 0;
     padding: 0;
+}
+
+#player {
+    position: absolute;
+    width: 32px;
+    height: 32px;
 }
