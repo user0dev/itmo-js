@@ -1,4 +1,4 @@
-/*global randomInt, isNumber, isIntNumber, randomBool, textMap, FloorObject, map */
+/*global randomInt, isNumber, isIntNumber, randomBool, textMap, FloorObject, map, PLAYER_X, PLAYER_Y */
 var SPRITE_WIDTH = 32;
 var SPRITE_HEIGHT = 32;
 
@@ -249,8 +249,8 @@ function main() {
     var table, i, j, tr;
     map.initMap();
     player.initPlayer();
-    player.setPosition(0, 6);
-    player.setDirection(Direction.right);
+    player.setPosition(PLAYER_X, PLAYER_Y);
+    player.setDirection(Direction.up);
     //player.move();
 //    for (i = 0; i < table.rows.length; i += 1) {
 //        tr = table.rows[i];
