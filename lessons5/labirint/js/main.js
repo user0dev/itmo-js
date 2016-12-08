@@ -72,15 +72,22 @@ function FloorObject(x, y, type) {
         elements[0].style.backgroundPosition = spriteToBP(8, 6);
     }
     this.isStand = function () { //на эту клетку можно встать
-        if (this.getType() === floorType.floor) {
+        switch (this.getType()) {
+        case floorType.floor:
             return true;
+        case floorType.floorWithDoor:
+        case floorType.floorWithJug:
+            return actived;
         }
         return false;
     };
     this.isAction = function () { //с этой клеткой можно произвести действие
         if (this.getType() === floorType.floorWithDoor || this.getType() === floorType.floorWithJug) {
             return !actived;
+        } else {
+            return false;
         }
+        
     };
     this.action = function () {
         if (this.isAction) {
@@ -197,8 +204,8 @@ var player = {
     action: function () {
         "use strict";
         var ax, ay;
-        ax = dirToX(this.direction);
-        ay = dirToY(this.direction);
+        ax = Math.round(this.x + dirToX(this.direction));
+        ay = Math.round(this.y + dirToY(this.direction));
         if (map.coordCorrect(ax, ay) && map.floorObjects[ay][ax].isAction()) {
             map.floorObjects[ay][ax].action();
         }
