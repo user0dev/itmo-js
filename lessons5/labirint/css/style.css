@@ -17,7 +17,7 @@
     height: 32px;
 }
 
-#gameTable td, .go0, #player {
+#gameTable td, .sprite, #player {
     background: url("../images/sprites.png") no-repeat;
     width: 32px;
     height: 32px;

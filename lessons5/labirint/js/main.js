@@ -5,7 +5,7 @@ var SPRITE_WIDTH = 32;
 var SPRITE_HEIGHT = 32;
 
 
-var floorType = { wall: 0, floor: 1, floorWithDoor: 2 };
+var floorType = { wall: 0, floor: 1, floorWithDoor: 2, floorWithJug: 3 };
 var Direction = {
     up: 0,
     down: 1,
@@ -38,36 +38,72 @@ function spriteToBP(x, y) {
 
 function FloorObject(x, y, type) {
     "use strict";
-    var elements = [];
+    var elements = [], makeInner, actived;
     elements[0] = map.getTableCell(x, y);
-    this.type = type;
-    switch (type) {
+    this.getType = function () {
+        return type;
+    };
+    actived = false;
+    makeInner = function (bp) {
+        var div;
+        if (elements[0] !== undefined && elements[1] === undefined) {
+            div = document.createElement("div");
+            div.classList.add("sprite");
+            if (bp !== undefined) {
+                div.style.backgroundPosition = bp;
+            }
+            elements[1] = div;
+            elements[0].appendChild(div);
+        }
+    };
+    switch (this.getType()) {
     case floorType.wall:
         elements[0].style.backgroundPosition = spriteToBP(9, 0);
+        break;
+    case floorType.floorWithDoor:
+        elements[0].style.backgroundPosition = spriteToBP(8, 6);
+        makeInner(spriteToBP(4, 1));
+        break;
+    case floorType.floorWithJug:
+        elements[0].style.backgroundPosition = spriteToBP(8, 6);
+        makeInner(spriteToBP(4, 3));
         break;
     default:
         elements[0].style.backgroundPosition = spriteToBP(8, 6);
     }
-    
-    
     this.isStand = function () { //на эту клетку можно встать
-        if (type === floorType.floor) {
+        if (this.getType() === floorType.floor) {
             return true;
         }
         return false;
     };
     this.isAction = function () { //с этой клеткой можно произвести действие
-        return false;
+        if (this.getType() === floorType.floorWithDoor || this.getType() === floorType.floorWithJug) {
+            return !actived;
+        }
+    };
+    this.action = function () {
+        if (this.isAction) {
+            if (elements[1] !== undefined) {
+                if (this.getType() === floorType.floorWithDoor) {
+                    elements[1].style.backgroundPosition = spriteToBP(7, 1);
+                    actived = true;
+                } else if (this.getType() === floorType.floorWithJug) {
+                    elements[1].style.backgroundPosition = spriteToBP(7, 3);
+                    actived = true;
+                }
+            }
+        }
     };
     this.computeSprite = function () {
-        if (this.type === floorType.wall) {
-            if (y + 1 >= map.height || map.floorObjects[y + 1][x].type !== floorType.wall) {
-                if (y - 1 < 0 || map.floorObjects[y - 1][x].type !== floorType.wall) {
+        if (this.getType() === floorType.wall) {
+            if (y + 1 >= map.height || map.floorObjects[y + 1][x].getType() !== floorType.wall) {
+                if (y - 1 < 0 || map.floorObjects[y - 1][x].getType() !== floorType.wall) {
                     elements[0].style.backgroundPosition = spriteToBP(8, 0);
                 } else {
                     elements[0].style.backgroundPosition = spriteToBP(10, 0);
                 }
-            } else if (y - 1 < 0 || map.floorObjects[y - 1][x].type !== floorType.wall) {
+            } else if (y - 1 < 0 || map.floorObjects[y - 1][x].getType() !== floorType.wall) {
                 elements[0].style.backgroundPosition = spriteToBP(11, 0);
             }
         }
@@ -157,6 +193,15 @@ var player = {
         this.x = x;
         this.y = y;
         this.changeSprite();
+    },
+    action: function () {
+        "use strict";
+        var ax, ay;
+        ax = dirToX(this.direction);
+        ay = dirToY(this.direction);
+        if (map.coordCorrect(ax, ay) && map.floorObjects[ay][ax].isAction()) {
+            map.floorObjects[ay][ax].action();
+        }
     }
 };
 
@@ -198,6 +243,7 @@ var map = {
         "use strict";
         return y * 32 + "px";
     },
+    
     oKey: function (e) {
         "use strict";
         switch (e.keyCode) {
@@ -217,6 +263,10 @@ var map = {
         case 83:
             player.move(Direction.down);
             break;
+        case 17:
+        case 69:
+            player.action();
+            break;
         }
     },
     posCamera: function () {
@@ -235,6 +285,7 @@ var map = {
         }
         if (top < this.gamePlace.offsetHeight - this.table.offsetHeight) {
             top = this.gamePlace.offsetHeight - this.table.offsetHeight;
+            
         }
         
         this.table.style.left = left + "px";
@@ -255,6 +306,12 @@ var map = {
                 switch (textMap[i][j]) {
                 case "*":
                     this.floorObjects[i][j] =  new FloorObject(j, i, floorType.wall);
+                    break;
+                case "j":
+                    this.floorObjects[i][j] =  new FloorObject(j, i, floorType.floorWithJug);
+                    break;
+                case "d":
+                    this.floorObjects[i][j] =  new FloorObject(j, i, floorType.floorWithDoor);
                     break;
                 default:
                     this.floorObjects[i][j] =  new FloorObject(j, i, floorType.floor);
