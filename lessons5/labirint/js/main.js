@@ -1,11 +1,11 @@
-/*global randomInt, isNumber, isIntNumber, randomBool, textMap, FloorObject, map, PLAYER_X, PLAYER_Y */
+/*global randomInt, isNumber, isIntNumber, randomBool, textMap, FloorObject, map, PLAYER_X, PLAYER_Y, gameOver */
 /*jslint devel: true */
 
 var SPRITE_WIDTH = 32;
 var SPRITE_HEIGHT = 32;
 
 
-var floorType = { wall: 0, floor: 1, floorWithDoor: 2, floorWithJug: 3 };
+var floorType = { wall: 0, floor: 1, floorWithDoor: 2, floorWithJug: 3, exit: 4 };
 var Direction = {
     up: 0,
     down: 1,
@@ -60,6 +60,9 @@ function FloorObject(x, y, type) {
     case floorType.wall:
         elements[0].style.backgroundPosition = spriteToBP(9, 0);
         break;
+    case floorType.exit:
+        elements[0].style.backgroundPosition = spriteToBP(10, 5);
+        break;
     case floorType.floorWithDoor:
         elements[0].style.backgroundPosition = spriteToBP(8, 6);
         makeInner(spriteToBP(4, 1));
@@ -74,6 +77,8 @@ function FloorObject(x, y, type) {
     this.isStand = function () { //на эту клетку можно встать
         switch (this.getType()) {
         case floorType.floor:
+            return true;
+        case floorType.exit:
             return true;
         case floorType.floorWithDoor:
         case floorType.floorWithJug:
@@ -115,6 +120,17 @@ function FloorObject(x, y, type) {
             }
         }
     };
+    this.restory = function () {
+        if (elements[1] !== undefined) {
+            if (this.getType() === floorType.floorWithDoor) {
+                elements[1].style.backgroundPosition = spriteToBP(4, 1);
+                actived = false;
+            } else if (this.getType() === floorType.floorWithJug) {
+                elements[1].style.backgroundPosition = spriteToBP(4, 3);
+                actived = false;
+            }
+        }
+    };
 }
 
 var player = {
@@ -148,6 +164,9 @@ var player = {
             this.y += dirToY(dir);
             this.changeSprite();
             map.posCamera();
+            if (map.floorObjects[Math.round(this.y)][Math.round(this.x)].getType() === floorType.exit) {
+                gameOver();
+            }
             return true;
         }
         this.changeSprite();
@@ -320,6 +339,9 @@ var map = {
                 case "d":
                     this.floorObjects[i][j] =  new FloorObject(j, i, floorType.floorWithDoor);
                     break;
+                case "e":
+                    this.floorObjects[i][j] =  new FloorObject(j, i, floorType.exit);
+                    break;
                 default:
                     this.floorObjects[i][j] =  new FloorObject(j, i, floorType.floor);
                     break;
@@ -336,11 +358,29 @@ var map = {
         player.setDirection(Direction.up);
         this.posCamera();
         document.body.onkeydown = this.oKey;
+    },
+    reinitMap: function () {
+        "use strict";
+        var i, j;
+        player.x = PLAYER_X;
+        player.y = PLAYER_Y;
+        player.direction = Direction.up;
+        player.changeSprite();
+        for (i = 0; i < this.height; i += 1) {
+            for (j = 0; j < this.width; j += 1) {
+                this.floorObjects[i][j].restory();
+            }
+        }
+        this.posCamera();
     }
-
 };
 
-
+function gameOver() {
+    "use strict";
+    if (confirm("Лабиринт пройден. Хотите начать с начала?")) {
+        map.reinitMap();
+    }
+}
 
 
 
