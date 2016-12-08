@@ -16,3 +16,18 @@
     width: 32px;
     height: 32px;
 }
+
+#gameTable td, .go0, #player {
+    background: url("../images/sprites.png") no-repeat;
+    width: 32px;
+    height: 32px;
+}
+
+#gamePlace {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    position: absolute;
+    left: 0;
+    top: 0;
+}

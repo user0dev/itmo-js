@@ -1,4 +1,6 @@
 /*global randomInt, isNumber, isIntNumber, randomBool, textMap, FloorObject, map, PLAYER_X, PLAYER_Y */
+/*jslint devel: true */
+
 var SPRITE_WIDTH = 32;
 var SPRITE_HEIGHT = 32;
 
@@ -58,7 +60,17 @@ function FloorObject(x, y, type) {
         return false;
     };
     this.computeSprite = function () {
-        
+        if (this.type === floorType.wall) {
+            if (y + 1 >= map.height || map.floorObjects[y + 1][x].type !== floorType.wall) {
+                if (y - 1 < 0 || map.floorObjects[y - 1][x].type !== floorType.wall) {
+                    elements[0].style.backgroundPosition = spriteToBP(8, 0);
+                } else {
+                    elements[0].style.backgroundPosition = spriteToBP(10, 0);
+                }
+            } else if (y - 1 < 0 || map.floorObjects[y - 1][x].type !== floorType.wall) {
+                elements[0].style.backgroundPosition = spriteToBP(11, 0);
+            }
+        }
     };
 }
 
@@ -92,6 +104,7 @@ var player = {
             this.x += dirToX(dir);
             this.y += dirToY(dir);
             this.changeSprite();
+            map.posCamera();
             return true;
         }
         this.changeSprite();
@@ -165,6 +178,7 @@ function makeGameTable(width, height) {
 
 var map = {
     table: null,
+    gamePlase: null,
     getTableCell: function (x, y) {
         "use strict";
         return this.table.rows[y].cells[x];
@@ -205,12 +219,35 @@ var map = {
             break;
         }
     },
+    posCamera: function () {
+        "use strict";
+        var left, top;
+        top = this.gamePlace.offsetHeight / 2 - player.y * SPRITE_HEIGHT + SPRITE_HEIGHT / 2;
+        left = this.gamePlace.offsetWidth / 2 - player.x * SPRITE_WIDTH - SPRITE_WIDTH / 2;
+        if (left > 0) {
+            left = 0;
+        }
+        if (left < this.gamePlace.offsetWidth - this.table.offsetWidth) {
+            left = this.gamePlace.offsetWidth - this.table.offsetWidth;
+        }
+        if (top > 0) {
+            top = 0;
+        }
+        if (top < this.gamePlace.offsetHeight - this.table.offsetHeight) {
+            top = this.gamePlace.offsetHeight - this.table.offsetHeight;
+        }
+        
+        this.table.style.left = left + "px";
+        this.table.style.top = top + "px";
+        
+    },
     initMap: function () {
         "use strict";
         var i, j;
         this.height = textMap.length;
         this.width = textMap[0].length;
-        document.getElementById("gamePlace").innerHTML = makeGameTable(this.width, this.height);
+        this.gamePlace = document.getElementById("gamePlace");
+        this.gamePlace.innerHTML = makeGameTable(this.width, this.height);
         this.table = document.getElementById("gameTable");
         for (i = 0; i < this.height; i += 1) {
             this.floorObjects[i] = [];
@@ -225,18 +262,18 @@ var map = {
                 }
             }
         }
+        for (i = 0; i < this.height; i += 1) {
+            for (j = 0; j < this.width; j += 1) {
+                this.floorObjects[i][j].computeSprite();
+            }
+        }
+        player.initPlayer();
+        player.setPosition(PLAYER_X, PLAYER_Y);
+        player.setDirection(Direction.up);
+        this.posCamera();
         document.body.onkeydown = this.oKey;
     }
-//    initFloor: function () {
-//        "use strict";
-//        var i, j;
-//        for (i = 0; i < this.height; i += 1) {
-//            this.floorObjects[i] = [];
-//            for (j = 0; j < this.width; j += 1) {
-//                this.floorObjects[i][j] = new FloorObject(j, i, this.map[i][j]);
-//            }
-//        }
-//    }
+
 };
 
 
@@ -245,18 +282,8 @@ var map = {
 
 function main() {
     "use strict";
-    
-    var table, i, j, tr;
     map.initMap();
-    player.initPlayer();
-    player.setPosition(PLAYER_X, PLAYER_Y);
-    player.setDirection(Direction.up);
-    //player.move();
-//    for (i = 0; i < table.rows.length; i += 1) {
-//        tr = table.rows[i];
-//        for (j = 0; j < tr.cells.length; j += 1) {
-//            tr.cells[j].style.backgroundPosition = randomBool() ? spriteToBP(8, 6) : spriteToBP(9, 0);
-//        }
-//    }
+
+
 }
 main();
