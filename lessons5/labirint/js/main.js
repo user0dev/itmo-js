@@ -39,12 +39,13 @@ function spriteToBP(x, y) {
 
 function FloorObject(x, y, type) {
     "use strict";
-    var elements = [], makeInner, actived;
+    var elements = [], makeInner, actived, opened, startAnimation, start = 0;
     elements[0] = map.getTableCell(x, y);
     this.getType = function () {
         return type;
     };
     actived = false;
+    opened = false;
     makeInner = function (bp) {
         var div;
         if (elements[0] !== undefined && elements[1] === undefined) {
@@ -83,7 +84,7 @@ function FloorObject(x, y, type) {
             return true;
         case floorType.floorWithDoor:
         case floorType.floorWithJug:
-            return true;//actived;
+            return opened;
         }
         return false;
     };
@@ -95,17 +96,49 @@ function FloorObject(x, y, type) {
         }
         
     };
-    this.action = function () {
-        if (this.isAction) {
-            if (elements[1] !== undefined) {
-                if (this.getType() === floorType.floorWithDoor) {
-                    elements[1].style.backgroundPosition = spriteToBP(7, 1);
-                    actived = true;
-                } else if (this.getType() === floorType.floorWithJug) {
-                    elements[1].style.backgroundPosition = spriteToBP(7, 3);
-                    actived = true;
+    startAnimation = function () {
+        var spY = 0, spX, animId = null;
+        if (type === floorType.floorWithDoor) {
+            spY = 1;
+        } else if (type === floorType.floorWithJug) {
+            spY = 3;
+        }
+        start = performance.now();
+        spX = 5;
+        elements[1].style.backgroundPosition = spriteToBP(spX, spY);
+        animId = window.requestAnimationFrame(function anim(time) {
+            var dtime;
+            if (opened) {
+                return;
+            }
+            dtime = time - start;
+            if (dtime > 100) {
+                start = time;
+                spX += 1;
+                if (spX < 7) {
+                    elements[1].style.backgroundPosition = spriteToBP(spX, spY);
+                } else {
+                    opened = true;
+                    elements[1].style.backgroundPosition = spriteToBP(7, spY);
+                    window.cancelAnimationFrame(animId);
+                    return;
                 }
             }
+            animId = window.requestAnimationFrame(anim);
+        });
+    };
+    this.action = function () {
+        if (this.isAction) {
+//            if (elements[1] !== undefined) {
+//                if (this.getType() === floorType.floorWithDoor) {
+//                    elements[1].style.backgroundPosition = spriteToBP(7, 1);
+//                    actived = true;
+//                } else if (this.getType() === floorType.floorWithJug) {
+//                    elements[1].style.backgroundPosition = spriteToBP(7, 3);
+//                    actived = true;
+//                }
+//            }
+            startAnimation();
         }
     };
     this.computeSprite = function () {
@@ -246,29 +279,66 @@ var player = {
 //        var ax, ay;
 //        ax = Math.round(this.x + dirToX(this.direction));
 //        ay = Math.round(this.y + dirToY(this.direction));
-        return;
-        var newX, newY;
-        switch (player.direction) {
-        case Direction.left:
-            newX = Math.ceil(this.x) - 1;
-            newY = Math.round(this.y);
-            break;
-        case Direction.right:
-            newX = Math.floor(this.x) + 1;
-            newY = Math.round(this.y);
-            break;
-        case Direction.up:
-            newX = Math.round(this.x);
-            newY = Math.ceil(this.y) - 1;
-            break;
-        case Direction.down:
-            newX = Math.round(this.x);
-            newY = Math.floor(this.y) + 1;
-            break;
+//        var newX, newY;
+//        switch (player.direction) {
+//        case Direction.left:
+//            newX = Math.ceil(this.x) - 1;
+//            newY = Math.round(this.y);
+//            break;
+//        case Direction.right:
+//            newX = Math.floor(this.x) + 1;
+//            newY = Math.round(this.y);
+//            break;
+//        case Direction.up:
+//            newX = Math.round(this.x);
+//            newY = Math.ceil(this.y) - 1;
+//            break;
+//        case Direction.down:
+//            newX = Math.round(this.x);
+//            newY = Math.floor(this.y) + 1;
+//            break;
+//        }
+        var mx, my, d, c;
+//        mx = round32(this.fixCoordX(player.x)) / 32;
+//        my = round32(this.fixCoordY(player.y)) / 32;
+        d = this.direction;
+//        c = 0.3;
+//        if (d === Direction.up || d === Direction.down) {
+//            mx = Math.round(player.x / SW);
+//            if (d === Direction.up) {
+//                my = Math.ceil(player.y / SH - c);
+//            } else {
+//                my = Math.floor(player.y / SH + c);
+//            }
+//        } else if (d === Direction.left || d === Direction.right) {
+//            my = Math.round(player.y / SH);
+//            if (d === Direction.left) {
+//                mx = Math.ceil(player.x / SW - c);
+//            } else {
+//                mx = Math.floor(player.x / SW + c);
+//            }
+//        }
+
+        
+        
+        if (d === Direction.up || d === Direction.down) {
+            mx = Math.round(player.x / SW);
+            if (d === Direction.up) {
+                my = Math.round(player.y / SW) - 1;
+            } else {
+                my = Math.round(player.y / SH) + 1;
+            }
+        } else if (d === Direction.left || d === Direction.right) {
+            my = Math.round(player.y / SH);
+            if (d === Direction.left) {
+                mx = Math.round(player.x / SW) - 1;
+            } else {
+                mx = Math.floor(player.x / SW) + 1;
+            }
         }
         
-        if (map.coordCorrect(newX, newY) && map.floorObjects[newY][newX].isAction()) {
-            map.floorObjects[newY][newX].action();
+        if (map.coordCorrect(mx, my) && map.floorObjects[my][mx].isAction()) {
+            map.floorObjects[my][mx].action();
         }
     },
     frameNum: 0,
@@ -370,39 +440,42 @@ var player = {
             }
         }
         if (e.type === "keydown" && !e.repeat) {
-            switch (e.key) {
-            case "ArrowLeft":
+            switch (e.keyCode) {
+            case 37:
+            case 65:
                 player.direction = Direction.left;
                 if (!player.moving) {
                     startAnimation();
                 }
                 break;
-            case "ArrowRight":
+            case 39:
+            case 68:
                 player.direction = Direction.right;
                 if (!player.moving) {
                     startAnimation();
                 }
                 break;
-            case "ArrowUp":
+            case 38:
+            case 87:
                 player.direction = Direction.up;
                 if (!player.moving) {
                     startAnimation();
                 }
                 break;
-            case "ArrowDown":
+            case 40:
+            case 83:
                 player.direction = Direction.down;
                 if (!player.moving) {
                     startAnimation();
                 }
                 break;
-            }
-        } else if (e.type === "keyup" && !e.repeat) {
-            switch (e.key) {
-            case "e":
-            case "Control":
+            case 17:
+            case 69:
                 player.action();
                 break;
             }
+        } else if (e.type === "keyup" && !e.repeat) {
+
             player.frameNum = 0;
             player.moving = false;
             setWalkSprite();
