@@ -3,7 +3,8 @@
 
 var SPRITE_WIDTH = 32;
 var SPRITE_HEIGHT = 32;
-
+var SW = SPRITE_WIDTH;
+var SH = SPRITE_HEIGHT;
 
 var floorType = { wall: 0, floor: 1, floorWithDoor: 2, floorWithJug: 3, exit: 4 };
 var Direction = {
@@ -82,7 +83,7 @@ function FloorObject(x, y, type) {
             return true;
         case floorType.floorWithDoor:
         case floorType.floorWithJug:
-            return actived;
+            return true;//actived;
         }
         return false;
     };
@@ -132,7 +133,11 @@ function FloorObject(x, y, type) {
         }
     };
 }
-var F = 0.15;
+//coord координата с плавающей точкой. На выходе целочисленная кратная 32 координата
+function round32(coord) {
+    "use strict";
+    return Math.round(coord / 32) * 32;
+}
 
 var player = {
     x: 0, // координаты в пикселях.
@@ -140,93 +145,49 @@ var player = {
     element: null, //div с установленным фоном
     direction: Direction.up,
     arrayForSprite: [],
-    canIMove: function (dir) { //проверка можно ли перейти по указанному направлению. 
+    fixCoordX: function (x) {
         "use strict";
-        //return true;
-        if (dir === undefined) {
-            dir = this.direction;
+        x = Math.round(x);
+        if (x % SW <= 2 || x % SW >= SW - 2) {
+            x = round32(x);
         }
-        var x1, x2, y1, y2;
-        switch (dir) {
-        case Direction.left:
-            x1 = Math.ceil(this.x) - 1;
-            y1 = Math.floor(this.y);
-            y2 = Math.ceil(this.y);
-            if (Math.abs(y1 - this.y) < F) {
-                return map.floorObjects[y1][x1].isStand();
-            } else if (Math.abs(y2 - this.y) < F) {
-                return map.floorObjects[y2][x1].isStand();
-            } else {
-                return map.floorObjects[y1][x1].isStand() && map.floorObjects[y2][x1].isStand();
-            }
-        case Direction.right:
-//            newX = Math.floor(this.x) + 1;
-//            newY = Math.round(this.y);
-//            break;
-            x1 = Math.floor(this.x) + 1;
-            y1 = Math.floor(this.y);
-            y2 = Math.ceil(this.y);
-            if (Math.abs(y1 - this.y) < F) {
-                return map.floorObjects[y1][x1].isStand();
-            } else if (Math.abs(y2 - this.y) < F) {
-                return map.floorObjects[y2][x1].isStand();
-            } else {
-                return map.floorObjects[y1][x1].isStand() && map.floorObjects[y2][x1].isStand();
-            }
-        case Direction.up:
-//            newX = Math.round(this.x);
-//            newY = Math.ceil(this.y) - 1;
-//            break;
-            x1 = Math.floor(this.x);
-            x2 = Math.ceil(this.x);
-            y1 = Math.ceil(this.y) - 1;
-            if (Math.abs(x1 - this.x) < F) {
-                return map.floorObjects[y1][x1].isStand();
-            } else if (Math.abs(x2 - this.x) < F) {
-                return map.floorObjects[y1][x2].isStand();
-            } else {
-                return map.floorObjects[y1][x1].isStand() && map.floorObjects[y1][x2].isStand();
-            }
-        case Direction.down:
-//            newX = Math.round(this.x);
-//            newY = Math.floor(this.y) + 1;
-//            break;
-            x1 = Math.floor(this.x);
-            x2 = Math.ceil(this.x);
-            y1 = Math.floor(this.y) + 1;
-            if (Math.abs(x1 - this.x) < F) {
-                return map.floorObjects[y1][x1].isStand();
-            } else if (Math.abs(x2 - this.x) < F) {
-                return map.floorObjects[y1][x2].isStand();
-            } else {
-                return map.floorObjects[y1][x1].isStand() && map.floorObjects[y1][x2].isStand();
-            }
-        }
-        /*if (!map.coordCorrect(newX, newY)) {
-            return false;
-        }*/
-        //return map.floorObjects[newY][newX].isStand();
-        
+        return x;
     },
-    move: function (dir) {
+    fixCoordY: function (y) {
         "use strict";
-        if (dir === undefined) {
-            dir = this.direction;
-        } else {
-            this.direction = dir;
+        return this.fixCoordX(y);
+    }, //x, y должны быть целочисленными. Желательно правильным образом округленными. В зависимости от направления.
+    canIMove: function (x, y) {
+        "use strict";
+        var dir, mx1, my1, mx2, my2, my, mx;
+        dir = this.direction;
+        if (x === undefined) {
+            x = this.fixCoordX(this.x); //должна быть целочисленной
         }
-        if (this.canIMove(dir)) {
-            this.x += dirToX(dir);
-            this.y += dirToY(dir);
-            this.changeSprite();
-            map.posCamera();
-            if (map.floorObjects[Math.round(this.y)][Math.round(this.x)].getType() === floorType.exit) {
-                gameOver();
+        if (y === undefined) {
+            y = this.fixCoordX(this.y); //должна быть целочисленной
+        }
+        my = y / SH;
+        mx = x / SW;
+        if (dir === Direction.left || dir === Direction.right) {
+            my1 = Math.ceil(my);
+            my2 = Math.floor(my);
+            if (dir === Direction.left) {
+                mx1 = Math.ceil(mx) - 1;
+            } else if (dir === Direction.right) {
+                mx1 = Math.floor(mx) + 1;
             }
-            return true;
+            return map.floorObjects[my1][mx1].isStand() && map.floorObjects[my2][mx1].isStand();
+        } else if (dir === Direction.up || dir === Direction.down) {
+            mx1 = Math.ceil(mx);
+            mx2 = Math.floor(mx);
+            if (dir === Direction.up) {
+                my1 = Math.ceil(my) - 1;
+            } else if (dir === Direction.down) {
+                my1 = Math.floor(my) + 1;
+            }
+            return map.floorObjects[my1][mx1].isStand() && map.floorObjects[my1][mx2].isStand();
         }
-        this.changeSprite();
-        return false;
     },
     setDirection: function (direction) {
         "use strict";
@@ -252,6 +213,8 @@ var player = {
         setSprites(this.arrayForSprite[Direction.left], 9);
         this.arrayForSprite[Direction.right] = [];
         setSprites(this.arrayForSprite[Direction.right], 10);
+        this.x = PLAYER_X * SPRITE_WIDTH;
+        this.y = PLAYER_Y * SPRITE_HEIGHT;
         var div;
         if (this.element === null) {
             div = document.createElement("div");
@@ -259,24 +222,23 @@ var player = {
             div.id = "player";
             map.table.appendChild(div);
             div.style.backgroundPosition = this.arrayForSprite[this.direction][0];
-            div.style.left = map.xToLeft(this.x);
-            div.style.top = map.yToTop(this.y);
+            div.style.left = this.x + "px";
+            div.style.top = this.y + "px";
             
         }
         document.body.onkeydown = this.keyEvent;
         document.body.onkeyup = this.keyEvent;
-        document.body.onkeypress = this.keyEvent;
     },
     changeSprite: function () {
         "use strict";
         this.element.style.backgroundPosition = this.arrayForSprite[this.direction][0];
-        this.element.style.left = map.xToLeft(this.x);
-        this.element.style.top = map.yToTop(this.y);
+//        this.element.style.left = map.xToLeft(this.x);
+//        this.element.style.top = map.yToTop(this.y);
     },
     setPosition: function (x, y) {
         "use strict";
-        this.x = x;
-        this.y = y;
+        this.x = x * SPRITE_WIDTH;
+        this.y = y * SPRITE_HEIGHT;
         this.changeSprite();
     },
     action: function () {
@@ -284,7 +246,7 @@ var player = {
 //        var ax, ay;
 //        ax = Math.round(this.x + dirToX(this.direction));
 //        ay = Math.round(this.y + dirToY(this.direction));
-
+        return;
         var newX, newY;
         switch (player.direction) {
         case Direction.left:
@@ -333,6 +295,18 @@ var player = {
             }
         }
         function startAnimation() {
+            function correctY() {
+                if (player.y !== round32(player.y)) {
+                    player.y = round32(player.y);
+                    player.element.style.top = player.y + "px";
+                }
+            }
+            function correctX() {
+                if (player.x !== round32(player.x)) {
+                    player.x = round32(player.x);
+                    player.element.style.left = player.x + "px";
+                }
+            }
             player.frameNum = 1;
             player.frameTime = 0;
             player.moving = true;
@@ -349,24 +323,39 @@ var player = {
                         if (player.element !== null) {
                             switch (player.direction) {
                             case Direction.down:
-                                player.y += dtime / (10 * 32);
-                                player.element.style.top = Math.round(player.y * 32) + "px";
+                                player.y += dtime / (10);
+                                player.element.style.top = Math.round(player.y) + "px";
+                                correctX();
                                 break;
                             case Direction.up:
-                                player.y -= dtime / (10 * 32);
+                                player.y -= dtime / (10);
                                 //player.y -= 1;
-                                player.element.style.top = Math.round(player.y * 32) + "px";
+                                player.element.style.top = Math.round(player.y) + "px";
+                                correctX();
                                 break;
                             case Direction.left:
-                                player.x -= dtime / (10 * 32);
-                                player.element.style.left = Math.round(player.x * 32) + "px";
+                                player.x -= dtime / (10);
+                                player.element.style.left = Math.round(player.x) + "px";
+                                correctY();
                                 break;
                             case Direction.right:
-                                player.x += dtime / (10 * 32);
-                                player.element.style.left = Math.round(player.x * 32) + "px";
+                                player.x += dtime / (10);
+                                player.element.style.left = Math.round(player.x) + "px";
+                                correctY();
                                 break;
                             }
                             map.posCamera();
+                        }
+                    } else {
+                        switch (player.direction) {
+                        case Direction.down:
+                        case Direction.up:
+                            correctY();
+                            break;
+                        case Direction.left:
+                        case Direction.right:
+                            correctX();
+                            break;
                         }
                     }
                     //player.style.left = Math.round(x) + "px";
@@ -465,36 +454,36 @@ var map = {
         return y * 32 + "px";
     },
     
-    oKey: function (e) {
-        "use strict";
-        switch (e.keyCode) {
-        case 39:
-        case 68:
-            player.move(Direction.right);
-            break;
-        case 38:
-        case 87:
-            player.move(Direction.up);
-            break;
-        case 37:
-        case 65:
-            player.move(Direction.left);
-            break;
-        case 40:
-        case 83:
-            player.move(Direction.down);
-            break;
-        case 17:
-        case 69:
-            player.action();
-            break;
-        }
-    },
+//    oKey: function (e) {
+//        "use strict";
+//        switch (e.keyCode) {
+//        case 39:
+//        case 68:
+//            player.move(Direction.right);
+//            break;
+//        case 38:
+//        case 87:
+//            player.move(Direction.up);
+//            break;
+//        case 37:
+//        case 65:
+//            player.move(Direction.left);
+//            break;
+//        case 40:
+//        case 83:
+//            player.move(Direction.down);
+//            break;
+//        case 17:
+//        case 69:
+//            player.action();
+//            break;
+//        }
+//    },
     posCamera: function () {
         "use strict";
         var left, top;
-        top = this.gamePlace.offsetHeight / 2 - player.y * SPRITE_HEIGHT + SPRITE_HEIGHT / 2;
-        left = this.gamePlace.offsetWidth / 2 - player.x * SPRITE_WIDTH - SPRITE_WIDTH / 2;
+        top = this.gamePlace.offsetHeight / 2 - player.y + SPRITE_HEIGHT / 2;
+        left = this.gamePlace.offsetWidth / 2 - player.x - SPRITE_WIDTH / 2;
         if (left > 0) {
             left = 0;
         }
@@ -549,16 +538,16 @@ var map = {
             }
         }
         player.initPlayer();
-        player.setPosition(PLAYER_X, PLAYER_Y);
-        player.setDirection(Direction.up);
+        //player.setPosition(PLAYER_X, PLAYER_Y);
+        //player.setDirection(Direction.up);
         this.posCamera();
         //document.body.onkeydown = this.oKey;
     },
     reinitMap: function () {
         "use strict";
         var i, j;
-        player.x = PLAYER_X;
-        player.y = PLAYER_Y;
+        player.x = PLAYER_X * SPRITE_WIDTH;
+        player.y = PLAYER_Y * SPRITE_HEIGHT;
         player.direction = Direction.up;
         player.changeSprite();
         for (i = 0; i < this.height; i += 1) {
