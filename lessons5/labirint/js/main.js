@@ -1,4 +1,4 @@
-/*global randomInt, isNumber, isIntNumber, randomBool, textMap, FloorObject, map, PLAYER_X, PLAYER_Y, gameOver */
+/*global randomInt, isNumber, isIntNumber, randomBool, textMap, FloorObject, map, PLAYER_X, PLAYER_Y, gameOver, performance */
 /*jslint devel: true */
 
 var SPRITE_WIDTH = 32;
@@ -132,25 +132,81 @@ function FloorObject(x, y, type) {
         }
     };
 }
+var F = 0.15;
 
 var player = {
-    x: 0,
-    y: 0,
-    element: null,
+    x: 0, // координаты в пикселях.
+    y: 0, //
+    element: null, //div с установленным фоном
     direction: Direction.up,
     arrayForSprite: [],
-    canIMove: function (dir) {
+    canIMove: function (dir) { //проверка можно ли перейти по указанному направлению. 
         "use strict";
+        //return true;
         if (dir === undefined) {
             dir = this.direction;
         }
-        var newX, newY;
-        newX = this.x + dirToX(dir);
-        newY = this.y + dirToY(dir);
-        if (!map.coordCorrect(newX, newY)) {
-            return false;
+        var x1, x2, y1, y2;
+        switch (dir) {
+        case Direction.left:
+            x1 = Math.ceil(this.x) - 1;
+            y1 = Math.floor(this.y);
+            y2 = Math.ceil(this.y);
+            if (Math.abs(y1 - this.y) < F) {
+                return map.floorObjects[y1][x1].isStand();
+            } else if (Math.abs(y2 - this.y) < F) {
+                return map.floorObjects[y2][x1].isStand();
+            } else {
+                return map.floorObjects[y1][x1].isStand() && map.floorObjects[y2][x1].isStand();
+            }
+        case Direction.right:
+//            newX = Math.floor(this.x) + 1;
+//            newY = Math.round(this.y);
+//            break;
+            x1 = Math.floor(this.x) + 1;
+            y1 = Math.floor(this.y);
+            y2 = Math.ceil(this.y);
+            if (Math.abs(y1 - this.y) < F) {
+                return map.floorObjects[y1][x1].isStand();
+            } else if (Math.abs(y2 - this.y) < F) {
+                return map.floorObjects[y2][x1].isStand();
+            } else {
+                return map.floorObjects[y1][x1].isStand() && map.floorObjects[y2][x1].isStand();
+            }
+        case Direction.up:
+//            newX = Math.round(this.x);
+//            newY = Math.ceil(this.y) - 1;
+//            break;
+            x1 = Math.floor(this.x);
+            x2 = Math.ceil(this.x);
+            y1 = Math.ceil(this.y) - 1;
+            if (Math.abs(x1 - this.x) < F) {
+                return map.floorObjects[y1][x1].isStand();
+            } else if (Math.abs(x2 - this.x) < F) {
+                return map.floorObjects[y1][x2].isStand();
+            } else {
+                return map.floorObjects[y1][x1].isStand() && map.floorObjects[y1][x2].isStand();
+            }
+        case Direction.down:
+//            newX = Math.round(this.x);
+//            newY = Math.floor(this.y) + 1;
+//            break;
+            x1 = Math.floor(this.x);
+            x2 = Math.ceil(this.x);
+            y1 = Math.floor(this.y) + 1;
+            if (Math.abs(x1 - this.x) < F) {
+                return map.floorObjects[y1][x1].isStand();
+            } else if (Math.abs(x2 - this.x) < F) {
+                return map.floorObjects[y1][x2].isStand();
+            } else {
+                return map.floorObjects[y1][x1].isStand() && map.floorObjects[y1][x2].isStand();
+            }
         }
-        return map.floorObjects[newY][newX].isStand();
+        /*if (!map.coordCorrect(newX, newY)) {
+            return false;
+        }*/
+        //return map.floorObjects[newY][newX].isStand();
+        
     },
     move: function (dir) {
         "use strict";
@@ -207,6 +263,9 @@ var player = {
             div.style.top = map.yToTop(this.y);
             
         }
+        document.body.onkeydown = this.keyEvent;
+        document.body.onkeyup = this.keyEvent;
+        document.body.onkeypress = this.keyEvent;
     },
     changeSprite: function () {
         "use strict";
@@ -222,13 +281,149 @@ var player = {
     },
     action: function () {
         "use strict";
-        var ax, ay;
-        ax = Math.round(this.x + dirToX(this.direction));
-        ay = Math.round(this.y + dirToY(this.direction));
-        if (map.coordCorrect(ax, ay) && map.floorObjects[ay][ax].isAction()) {
-            map.floorObjects[ay][ax].action();
+//        var ax, ay;
+//        ax = Math.round(this.x + dirToX(this.direction));
+//        ay = Math.round(this.y + dirToY(this.direction));
+
+        var newX, newY;
+        switch (player.direction) {
+        case Direction.left:
+            newX = Math.ceil(this.x) - 1;
+            newY = Math.round(this.y);
+            break;
+        case Direction.right:
+            newX = Math.floor(this.x) + 1;
+            newY = Math.round(this.y);
+            break;
+        case Direction.up:
+            newX = Math.round(this.x);
+            newY = Math.ceil(this.y) - 1;
+            break;
+        case Direction.down:
+            newX = Math.round(this.x);
+            newY = Math.floor(this.y) + 1;
+            break;
+        }
+        
+        if (map.coordCorrect(newX, newY) && map.floorObjects[newY][newX].isAction()) {
+            map.floorObjects[newY][newX].action();
+        }
+    },
+    frameNum: 0,
+    frameTime: 0,
+    moving: false,
+    start: 0,
+    animId: null,
+    keyEvent: function (e) {
+        "use strict";
+        function setWalkSprite() {
+            switch (player.direction) {
+            case Direction.left:
+                player.element.style.backgroundPosition = spriteToBP(player.frameNum, 9);
+                break;
+            case Direction.right:
+                player.element.style.backgroundPosition = spriteToBP(player.frameNum, 10);
+                break;
+            case Direction.up:
+                player.element.style.backgroundPosition = spriteToBP(player.frameNum, 11);
+                break;
+            case Direction.down:
+                player.element.style.backgroundPosition = spriteToBP(player.frameNum, 8);
+                break;
+            }
+        }
+        function startAnimation() {
+            player.frameNum = 1;
+            player.frameTime = 0;
+            player.moving = true;
+            setWalkSprite();
+            player.start = performance.now();
+            if (player.animId === null) {
+                player.animId = window.requestAnimationFrame(function anim(time) {
+                    if (!player.moving) {
+                        return;
+                    }
+                    var dtime = time - player.start;
+                    player.start = time;
+                    if (player.canIMove()) {
+                        if (player.element !== null) {
+                            switch (player.direction) {
+                            case Direction.down:
+                                player.y += dtime / (10 * 32);
+                                player.element.style.top = Math.round(player.y * 32) + "px";
+                                break;
+                            case Direction.up:
+                                player.y -= dtime / (10 * 32);
+                                //player.y -= 1;
+                                player.element.style.top = Math.round(player.y * 32) + "px";
+                                break;
+                            case Direction.left:
+                                player.x -= dtime / (10 * 32);
+                                player.element.style.left = Math.round(player.x * 32) + "px";
+                                break;
+                            case Direction.right:
+                                player.x += dtime / (10 * 32);
+                                player.element.style.left = Math.round(player.x * 32) + "px";
+                                break;
+                            }
+                            map.posCamera();
+                        }
+                    }
+                    //player.style.left = Math.round(x) + "px";
+                    player.frameTime += dtime;
+                    if (player.frameTime > 250) {
+                        player.frameTime = 0;
+                        player.frameNum = player.frameNum === 1 ? 2 : 1;
+                        setWalkSprite();
+                    }
+                    player.animId = window.requestAnimationFrame(anim);
+                });
+            }
+        }
+        if (e.type === "keydown" && !e.repeat) {
+            switch (e.key) {
+            case "ArrowLeft":
+                player.direction = Direction.left;
+                if (!player.moving) {
+                    startAnimation();
+                }
+                break;
+            case "ArrowRight":
+                player.direction = Direction.right;
+                if (!player.moving) {
+                    startAnimation();
+                }
+                break;
+            case "ArrowUp":
+                player.direction = Direction.up;
+                if (!player.moving) {
+                    startAnimation();
+                }
+                break;
+            case "ArrowDown":
+                player.direction = Direction.down;
+                if (!player.moving) {
+                    startAnimation();
+                }
+                break;
+            }
+        } else if (e.type === "keyup" && !e.repeat) {
+            switch (e.key) {
+            case "e":
+            case "Control":
+                player.action();
+                break;
+            }
+            player.frameNum = 0;
+            player.moving = false;
+            setWalkSprite();
+            if (player.animId !== null) {
+                window.cancelAnimationFrame(player.animId);
+                player.animId = null;
+            }
         }
     }
+    
 };
 
 
@@ -357,7 +552,7 @@ var map = {
         player.setPosition(PLAYER_X, PLAYER_Y);
         player.setDirection(Direction.up);
         this.posCamera();
-        document.body.onkeydown = this.oKey;
+        //document.body.onkeydown = this.oKey;
     },
     reinitMap: function () {
         "use strict";
