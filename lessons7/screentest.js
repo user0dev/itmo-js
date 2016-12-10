@@ -3,7 +3,7 @@ var colors = ["#000", "#f00", "#0f0", "#00f", "#fff"];
 var mouseDiv; //почему то onmousedown не работал в body;
 var timerId = null;
 
-var DELAY = 10000;
+var DELAY = 1000;
 
 function changeColor(onlySet) {
     "use strict";
