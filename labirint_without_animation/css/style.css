@@ -1,0 +1,33 @@
+#gameTable {
+    border-collapse: collapse;
+    margin: 0;
+    padding: 0;
+    position: relative;
+    width: 1888px;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+}
+
+#player {
+    position: absolute;
+    width: 32px;
+    height: 32px;
+}
+
+#gameTable td, .sprite, #player {
+    background: url("../images/sprites.png") no-repeat;
+    width: 32px;
+    height: 32px;
+}
+
+#gamePlace {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    position: absolute;
+    left: 0;
+    top: 0;
+}

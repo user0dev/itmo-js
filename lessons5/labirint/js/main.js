@@ -181,7 +181,7 @@ var player = {
     fixCoordX: function (x) {
         "use strict";
         x = Math.round(x);
-        if (x % SW <= 2 || x % SW >= SW - 2) {
+        if (x % SW <= 5 || x % SW >= SW - 5) {
             x = round32(x);
         }
         return x;
@@ -475,13 +475,23 @@ var player = {
                 break;
             }
         } else if (e.type === "keyup" && !e.repeat) {
-
-            player.frameNum = 0;
-            player.moving = false;
-            setWalkSprite();
-            if (player.animId !== null) {
-                window.cancelAnimationFrame(player.animId);
-                player.animId = null;
+            switch (e.keyCode) {
+            case 37:
+            case 65: //left
+            case 39:
+            case 68:
+            case 38:
+            case 87:
+            case 40:
+            case 83:
+                player.frameNum = 0;
+                player.moving = false;
+                setWalkSprite();
+                if (player.animId !== null) {
+                    window.cancelAnimationFrame(player.animId);
+                    player.animId = null;
+                }
+                break;
             }
         }
     }
