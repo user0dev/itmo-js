@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Document</title>
+    <style>
+        #output {
+            width: 100%;
+            height: 500px;
+        }
+        
+    </style>
+</head>
+<body>
+    <div>Чтоб работало в firefox нужно настроить about:config -> security.fileuri.strict_origin_policy -> false</div>
+    <div>В хром нужно запустить его с флагом  --disable-web-security</div>
+    <canvas id="canv"></canvas>
+    <div>
+        <textarea id="output" readonly></textarea>
+    </div>
+    <script src="generatefromjpeg.js"></script>
+</body>
+</html>

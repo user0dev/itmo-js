@@ -1,0 +1,3 @@
+Несколько общих функций.
+randomInt(max)
+randomBool()

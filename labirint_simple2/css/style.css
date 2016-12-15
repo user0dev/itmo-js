@@ -11,12 +11,16 @@
     padding: 0;
 }
 
+#player {
+    position: absolute;
+    width: 32px;
+    height: 32px;
+}
 
-.sprite {
+#gameTable td, .sprite, #player {
     background: url("../images/sprites.png") no-repeat;
     width: 32px;
     height: 32px;
-    position: absolute;
 }
 
 #gamePlace {
