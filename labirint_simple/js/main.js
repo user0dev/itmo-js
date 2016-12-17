@@ -194,6 +194,7 @@ var player = {
     animId: null,
     newDirection: null,
     stopAndWalk: false,
+    newStop: false,
     cancelAnimation: function () {
         "use strict";
         if (player.animId === null) {
@@ -202,6 +203,14 @@ var player = {
         window.cancelAnimationFrame(player.animId);
         player.animId = null;
         player.changeSprite();
+    },
+    stop: function () {
+        "use strict";
+        if (this.animId !== null) {
+            this.newStop = true;
+        } else {
+            this.newStop = false;
+        }
     },
     animationComplate: function () {
         "use strict";
@@ -224,7 +233,7 @@ var player = {
         if (dir === this.direction && this.animId !== null) {
             return;
         }
-        
+        /*todo доделать остановку */
     //if (true) { //if (this.canIMove(dir)) {
         if (this.animId === null) {
             this.newDirection = null;
@@ -233,9 +242,17 @@ var player = {
             this.direction = dir;
             this.stopAndWalk = !this.canIMove();
             player.element.style.backgroundPosition = player.arrayForSprite[this.direction][player.frame];
+            player.newStop = false;
             start = performance.now();
             var oldTime = start;
             player.animId = window.requestAnimationFrame(function anim(time) {
+                function stopPlayer() { // после необходимо вызвать return;
+                    player.newStop = false;
+                    window.cancelAnimationFrame(player.animId);
+                    player.animId = null;
+                    player.newDirection = null;
+                    player.changeSprite();
+                }
                 var dTime = time - oldTime;
                 var dir = player.direction;
                 oldTime = time;
@@ -244,6 +261,10 @@ var player = {
                     return;
                 }
                 if (player.stopAndWalk) {
+                    if (player.newStop) {
+                        stopPlayer();
+                        return;
+                    }
                     player.stopAndWalk = !player.canIMove();
                 }
                 if (time - start > 250) {
@@ -260,6 +281,10 @@ var player = {
                     //player.y += Math.floor(Math.abs(dy) / SH) * dirToY(dir);
                     player.x += dirToX(dir);
                     player.y += dirToY(dir);
+                    if (player.newStop) {
+                        stopPlayer();
+                        return;
+                    }
                     player.stopAndWalk = !player.canIMove();
                     /*if (dx > 0) {
                         dx -= SW;
@@ -299,13 +324,25 @@ var player = {
 
                 player.animId = window.requestAnimationFrame(anim);
             });
-        } else {
+        } else { //анимация запущена
             if (this.stopAndWalk) {
                 player.direction = dir;
                 player.element.style.backgroundPosition = player.arrayForSprite[dir][player.frame];
                 this.stopAndWalk = !this.canIMove();
             } else {
-                this.newDirection = dir;
+                var pd = player.direction;
+                var D = Direction;
+                if ((pd === D.up && dir === D.down) ||
+                        (pd === D.down && dir === D.up) ||
+                        (pd === D.left && dir === D.right) ||
+                        (pd === D.right && dir === D.left)) {
+                    player.direction = dir;
+                    player.element.style.backgroundPosition = player.arrayForSprite[dir][player.frame];
+                    this.stopAndWalk = !this.canIMove();
+                } else {
+                    this.newDirection = dir;
+                }
+                
             }
         }
         /*this.changeSprite();
@@ -415,30 +452,72 @@ var map = {
         "use strict";
         return y * 32 + "px";
     },
-    
+    lastCode: null,
+ //   keys: [], //массив нажатых клавишь
     oKey: function (e) {
         "use strict";
-        switch (e.keyCode) {
-        case 39:
-        case 68:
-            player.move(Direction.right);
-            break;
-        case 38:
-        case 87:
-            player.move(Direction.up);
-            break;
-        case 37:
-        case 65:
-            player.move(Direction.left);
-            break;
-        case 40:
-        case 83:
-            player.move(Direction.down);
-            break;
-        case 17:
-        case 69:
-            player.action();
-            break;
+/*        function keyCodeToDirection(keyCode) {
+            switch (keyCode) {
+            case 39:
+            case 68:
+                return Direction.right;
+            case 38:
+            case 87:
+                return Direction.up;
+            case 37:
+            case 65:
+                return Direction.left;
+            case 40:
+            case 83:
+                return Direction.down;
+            default:
+                return null;
+            }
+        }*/
+        if (e.type === "keydown" && !e.repeat) {
+            switch (e.keyCode) {
+            case 39:
+            case 68:
+                this.lastCode = e.keyCode;
+//                if (this.keys.indexOf(e.keyCode) === -1) {
+//                    this.keys.push(e.keyCode);
+//                }
+                player.move(Direction.right);
+                break;
+            case 38:
+            case 87:
+                this.lastCode = e.keyCode;
+//                if (this.keys.indexOf(e.keyCode) === -1) {
+//                    this.keys.push(e.keyCode);
+//                }
+                player.move(Direction.up);
+                break;
+            case 37:
+            case 65:
+                this.lastCode = e.keyCode;
+//                if (this.keys.indexOf(e.keyCode) === -1) {
+//                    this.keys.push(e.keyCode);
+//                }
+                player.move(Direction.left);
+                break;
+            case 40:
+            case 83:
+                this.lastCode = e.keyCode;
+//                if (this.keys.indexOf(e.keyCode) === -1) {
+//                    this.keys.push(e.keyCode);
+//                }
+                player.move(Direction.down);
+                break;
+            case 17:
+            case 69:
+                player.action();
+                break;
+            }
+        } else if (e.type === "keyup" && !e.repeat) {
+            if (e.keyCode === this.lastCode) {
+                this.lastCode = null;
+                player.stop();
+            }
         }
     },
     posCamera: function () {
@@ -507,6 +586,7 @@ var map = {
         player.setDirection(Direction.up);
         this.posCamera();
         document.body.onkeydown = this.oKey;
+        document.body.onkeyup = this.oKey;
     },
     reinitMap: function () {
         "use strict";

@@ -1,5 +1,7 @@
 /*global randomInt, isNumber, isIntNumber, randomBool, textMap, FloorObject, map, PLAYER_X, PLAYER_Y, gameOver, performance */
 /*jslint devel: true */
+/*jslint nomen: true */
+/*jslint vars: true */
 
 var SPRITE_WIDTH = 32;
 var SPRITE_HEIGHT = 32;
@@ -108,6 +110,9 @@ function FloorObject(x, y, type) {
     case floorType.fakeWall:
         elements[0].style.backgroundPosition = spriteToBP(9, 0);
         break;
+    case floorType.lava:
+        elements[0].style.backgroundPosition = spriteToBP(7, 5);
+        break;
     default: // по умолчанию пол
         elements[0].style.backgroundPosition = spriteToBP(8, 6);
     }
@@ -122,8 +127,18 @@ function FloorObject(x, y, type) {
             return opened;
         case floorType.fakeWall:
             return true;
+        case floorType.lava:
+            return true;
         }
         return false;
+    };
+    this.damage = function () {
+        switch (this.getType()) {
+        case floorType.lava:
+            return 10;
+        default:
+            return 0;
+        }
     };
     this.isAction = function () { //с этой клеткой можно произвести действие
         if (this.getType() === floorType.floorWithDoor || this.getType() === floorType.floorWithJug) {
@@ -215,6 +230,9 @@ function round32(coord) {
 var player = {
     x: 0, // координаты в пикселях.
     y: 0, //
+    maxHealth: 100,
+    health: 100,
+    healthLabel: null,
     element: null, //div с установленным фоном
     direction: Direction.up,
     arrayForSprite: [],
@@ -225,6 +243,20 @@ var player = {
             x = round32(x);
         }
         return x;
+    },
+    updateHealth: function () {
+        "use strict";
+        this.healthLabel.textContent = this.health + " %";
+    },
+    damage: function (value) {
+        "use strict";
+        if (value !== undefined && value > 0) {
+            this.health -= value;
+            if (this.health < 0) {
+                this.health = 0;
+            }
+            this.updateHealth();
+        }
     },
     fixCoordY: function (y) {
         "use strict";
@@ -301,6 +333,16 @@ var player = {
         }
         document.body.onkeydown = this.keyEvent;
         document.body.onkeyup = this.keyEvent;
+        var h;
+        h = document.createElement("span");
+        h.style.position = "absolute";
+        h.style.right = "30px";
+        h.style.top = "30px";
+        h.style.color = "white";
+        h.style.fontSize = "20px";
+        this.healthLabel = h;
+        document.body.appendChild(h);
+        this.updateHealth();
     },
     changeSprite: function () {
         "use strict";
@@ -633,6 +675,7 @@ var map = {
         this.gamePlace = document.getElementById("gamePlace");
         this.gamePlace.innerHTML = makeGameTable(this.width, this.height);
         this.table = document.getElementById("gameTable");
+        
         for (i = 0; i < this.height; i += 1) {
             this.floorObjects[i] = [];
             for (j = 0; j < this.width; j += 1) {
