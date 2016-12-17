@@ -75,14 +75,16 @@ function spriteToBP(x, y) {
     return x * -SPRITE_WIDTH + "px " + y * -SPRITE_HEIGHT + "px";
 }
 
+
 function FloorObject(x, y, type) {
     "use strict";
-    var elements = [], makeInner, actived;
+    var elements = [], makeInner, actived, opened, startAnimation, start = 0;
     elements[0] = map.getTableCell(x, y);
     this.getType = function () {
         return type;
     };
     actived = false;
+    opened = false;
     makeInner = function (bp) {
         var div;
         if (elements[0] !== undefined && elements[1] === undefined) {
@@ -110,7 +112,13 @@ function FloorObject(x, y, type) {
         elements[0].style.backgroundPosition = spriteToBP(8, 6);
         makeInner(spriteToBP(4, 3));
         break;
-    default:
+    case floorType.fakeWall:
+        elements[0].style.backgroundPosition = spriteToBP(9, 0);
+        break;
+    case floorType.lava:
+        elements[0].style.backgroundPosition = spriteToBP(7, 5);
+        break;
+    default: // по умолчанию пол
         elements[0].style.backgroundPosition = spriteToBP(8, 6);
     }
     this.isStand = function () { //на эту клетку можно встать
@@ -121,9 +129,21 @@ function FloorObject(x, y, type) {
             return true;
         case floorType.floorWithDoor:
         case floorType.floorWithJug:
-            return actived;
+            return opened;
+        case floorType.fakeWall:
+            return true;
+        case floorType.lava:
+            return true;
         }
         return false;
+    };
+    this.damage = function () {
+        switch (this.getType()) {
+        case floorType.lava:
+            return 10;
+        default:
+            return 0;
+        }
     };
     this.isAction = function () { //с этой клеткой можно произвести действие
         if (this.getType() === floorType.floorWithDoor || this.getType() === floorType.floorWithJug) {
@@ -133,28 +153,63 @@ function FloorObject(x, y, type) {
         }
         
     };
-    this.action = function () {
-        if (this.isAction) {
-            if (elements[1] !== undefined) {
-                if (this.getType() === floorType.floorWithDoor) {
-                    elements[1].style.backgroundPosition = spriteToBP(7, 1);
-                    actived = true;
-                } else if (this.getType() === floorType.floorWithJug) {
-                    elements[1].style.backgroundPosition = spriteToBP(7, 3);
-                    actived = true;
+    startAnimation = function () {
+        var spY = 0, spX, animId = null;
+        if (type === floorType.floorWithDoor) {
+            spY = 1;
+        } else if (type === floorType.floorWithJug) {
+            spY = 3;
+        }
+        start = performance.now();
+        spX = 5;
+        elements[1].style.backgroundPosition = spriteToBP(spX, spY);
+        animId = window.requestAnimationFrame(function anim(time) {
+            var dtime;
+            if (opened) {
+                return;
+            }
+            dtime = time - start;
+            if (dtime > 100) {
+                start = time;
+                spX += 1;
+                if (spX < 7) {
+                    elements[1].style.backgroundPosition = spriteToBP(spX, spY);
+                } else {
+                    opened = true;
+                    elements[1].style.backgroundPosition = spriteToBP(7, spY);
+                    window.cancelAnimationFrame(animId);
+                    return;
                 }
             }
+            animId = window.requestAnimationFrame(anim);
+        });
+    };
+    this.action = function () {
+        if (this.isAction) {
+//            if (elements[1] !== undefined) {
+//                if (this.getType() === floorType.floorWithDoor) {
+//                    elements[1].style.backgroundPosition = spriteToBP(7, 1);
+//                    actived = true;
+//                } else if (this.getType() === floorType.floorWithJug) {
+//                    elements[1].style.backgroundPosition = spriteToBP(7, 3);
+//                    actived = true;
+//                }
+//            }
+            startAnimation();
         }
     };
     this.computeSprite = function () {
-        if (this.getType() === floorType.wall) {
-            if (y + 1 >= map.height || map.floorObjects[y + 1][x].getType() !== floorType.wall) {
-                if (y - 1 < 0 || map.floorObjects[y - 1][x].getType() !== floorType.wall) {
+        function isWall(type) {
+            return type === floorType.wall || type === floorType.fakeWall;
+        }
+        if (isWall(this.getType())) {
+            if (y + 1 >= map.height || !isWall(map.floorObjects[y + 1][x].getType())) {
+                if (y - 1 < 0 || !isWall(map.floorObjects[y - 1][x].getType())) {
                     elements[0].style.backgroundPosition = spriteToBP(8, 0);
                 } else {
                     elements[0].style.backgroundPosition = spriteToBP(10, 0);
                 }
-            } else if (y - 1 < 0 || map.floorObjects[y - 1][x].getType() !== floorType.wall) {
+            } else if (y - 1 < 0 || !isWall(map.floorObjects[y - 1][x].getType())) {
                 elements[0].style.backgroundPosition = spriteToBP(11, 0);
             }
         }
@@ -171,7 +226,7 @@ function FloorObject(x, y, type) {
         }
     };
 }
-
+	
 var player = {
     x: 0,
     y: 0,
@@ -281,6 +336,8 @@ var player = {
                     //player.y += Math.floor(Math.abs(dy) / SH) * dirToY(dir);
                     player.x += dirToX(dir);
                     player.y += dirToY(dir);
+                    map.posCamera();
+                    //map.posCamera();
                     if (player.newStop) {
                         stopPlayer();
                         return;
@@ -318,6 +375,7 @@ var player = {
                     if (!player.stopAndWalk) {
                         ps.left = Math.round(player.x * SW + dx) + "px";
                         ps.top = Math.round(player.y * SH + dy) + "px";
+                        map.posCamera(dx, dy);
                     }
                 }
 
@@ -479,33 +537,21 @@ var map = {
             case 39:
             case 68:
                 this.lastCode = e.keyCode;
-//                if (this.keys.indexOf(e.keyCode) === -1) {
-//                    this.keys.push(e.keyCode);
-//                }
                 player.move(Direction.right);
                 break;
             case 38:
             case 87:
                 this.lastCode = e.keyCode;
-//                if (this.keys.indexOf(e.keyCode) === -1) {
-//                    this.keys.push(e.keyCode);
-//                }
                 player.move(Direction.up);
                 break;
             case 37:
             case 65:
                 this.lastCode = e.keyCode;
-//                if (this.keys.indexOf(e.keyCode) === -1) {
-//                    this.keys.push(e.keyCode);
-//                }
                 player.move(Direction.left);
                 break;
             case 40:
             case 83:
                 this.lastCode = e.keyCode;
-//                if (this.keys.indexOf(e.keyCode) === -1) {
-//                    this.keys.push(e.keyCode);
-//                }
                 player.move(Direction.down);
                 break;
             case 17:
@@ -520,11 +566,17 @@ var map = {
             }
         }
     },
-    posCamera: function () {
+    posCamera: function (dx, dy) {
         "use strict";
+        if (dx === undefined || dy === undefined) {
+            dx = 0;
+            dy = 0;
+        }
         var left, top;
-        top = this.gamePlace.offsetHeight / 2 - player.y * SPRITE_HEIGHT + SPRITE_HEIGHT / 2;
-        left = this.gamePlace.offsetWidth / 2 - player.x * SPRITE_WIDTH - SPRITE_WIDTH / 2;
+        top = this.gamePlace.offsetHeight / 2 - player.y * SPRITE_HEIGHT + SPRITE_HEIGHT / 2 -
+                Math.round(dy);
+        left = this.gamePlace.offsetWidth / 2 - player.x * SPRITE_WIDTH - SPRITE_WIDTH / 2 -
+                Math.round(dx);
         if (left > 0) {
             left = 0;
         }
