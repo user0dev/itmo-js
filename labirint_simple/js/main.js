@@ -1,4 +1,4 @@
-/*global randomInt, isNumber, isIntNumber, randomBool, textMap, FloorObject, map, PLAYER_X, PLAYER_Y, gameOver */
+/*global randomInt, isNumber, isIntNumber, randomBool, textMap, FloorObject, map, PLAYER_X, PLAYER_Y, gameOver, player */
 /*jslint devel: true */
 /*jslint nomen: true */
 /*jslint vars: true */
@@ -23,6 +23,7 @@ var floorType = {
     lava: "l",
     thorns: "t",
     plain: "p",
+    superPower: "P",
     healthPotion: "h",
     skeleton: "k",
     bat: "b",
@@ -78,13 +79,16 @@ function spriteToBP(x, y) {
 
 function FloorObject(x, y, type) {
     "use strict";
-    var elements = [], makeInner, actived, opened, startAnimation, start = 0;
+    var elements = [], makeInner, startAnimation, start = 0, self;
+    var animId = null;
     elements[0] = map.getTableCell(x, y);
     this.getType = function () {
         return type;
     };
-    actived = false;
-    opened = false;
+    this.durability = 5;
+    this.actived = false;
+    this.opened = false;
+    self = this;
     makeInner = function (bp) {
         var div;
         if (elements[0] !== undefined && elements[1] === undefined) {
@@ -95,91 +99,275 @@ function FloorObject(x, y, type) {
             }
             elements[1] = div;
             elements[0].appendChild(div);
+        } else if (elements[1] !== undefined && bp !== undefined) {
+            elements[1].style.backgroundPosition = bp;
         }
     };
-    switch (this.getType()) {
-    case floorType.wall:
-        elements[0].style.backgroundPosition = spriteToBP(9, 0);
-        break;
-    case floorType.exit:
-        elements[0].style.backgroundPosition = spriteToBP(10, 5);
-        break;
-    case floorType.floorWithDoor:
-        elements[0].style.backgroundPosition = spriteToBP(8, 6);
-        makeInner(spriteToBP(4, 1));
-        break;
-    case floorType.floorWithJug:
-        elements[0].style.backgroundPosition = spriteToBP(8, 6);
-        makeInner(spriteToBP(4, 3));
-        break;
-    case floorType.fakeWall:
-        elements[0].style.backgroundPosition = spriteToBP(9, 0);
-        break;
-    case floorType.lava:
-        elements[0].style.backgroundPosition = spriteToBP(7, 5);
-        break;
-    default: // по умолчанию пол
-        elements[0].style.backgroundPosition = spriteToBP(8, 6);
-    }
+    this.init = function () {
+        this.durability = 5;
+        this.actived = false;
+        this.opened = false;
+        switch (this.getType()) {
+        case floorType.wall:
+            elements[0].style.backgroundPosition = spriteToBP(9, 0);
+            break;
+        case floorType.exit:
+            elements[0].style.backgroundPosition = spriteToBP(10, 5);
+            break;
+        case floorType.floorWithDoor:
+            elements[0].style.backgroundPosition = spriteToBP(8, 6);
+            makeInner(spriteToBP(4, 1));
+            break;
+        case floorType.floorWithJug:
+            elements[0].style.backgroundPosition = spriteToBP(8, 6);
+            makeInner(spriteToBP(4, 3));
+            break;
+        case floorType.fakeWall:
+            elements[0].style.backgroundPosition = spriteToBP(9, 0);
+            break;
+        case floorType.lava:
+            elements[0].style.backgroundPosition = spriteToBP(7, 5);
+            //startAnimation();
+            break;
+        case floorType.superPower:
+            elements[0].style.backgroundPosition = spriteToBP(8, 6);
+            makeInner(spriteToBP(14, 13));
+            //startAnimation();
+            break;
+        default: // по умолчанию пол
+            elements[0].style.backgroundPosition = spriteToBP(8, 6);
+        }
+    };
+    this.init();
     this.isStand = function () { //на эту клетку можно встать
+        if (this.durability <= 0) {
+            return true;
+        }
         switch (this.getType()) {
         case floorType.floor:
             return true;
         case floorType.exit:
             return true;
         case floorType.floorWithDoor:
+            if (this.actived) {
+                return false;
+            } else {
+                return this.opened;
+            }
         case floorType.floorWithJug:
-            return opened;
+            return this.opened;
         case floorType.fakeWall:
             return true;
         case floorType.lava:
             return true;
+        case floorType.superPower:
+            return true;
         }
         return false;
+    };
+    this.canCatchUp = function () {
+        if (this.durability <= 0) {
+            return false;
+        }
+        switch (type) {
+        case floorType.superPower:
+            return true;
+        default:
+            return false;
+        }
+    };
+    this.catchUp = function () {
+        if (this.canCatchUp()) {
+            if (type === floorType.superPower) {
+                this.durability = 0;
+                player.superPower += 5;
+                player.updateSuperPower();
+                if (elements[1] !== undefined) {
+                    //elements[1].style.backgroundPosition = spriteToBP(0, 0);
+                    //elements[1].style.background = "transparent";
+                    elements[1].style.visibility = "hidden";
+
+                }
+            }
+        }
+    };
+    this.canAttack = function () {
+        if (this.durability <= 0) {
+            return false;
+        }
+        switch (type) {
+        case floorType.wall:
+        case floorType.floorWithDoor:
+        case floorType.floorWithJug:
+            return true;
+        default:
+            return false;
+        }
+    };
+    this.attacked = function () {
+        if (!this.canAttack()) {
+            return false;
+        }
+        switch (type) {
+        case floorType.wall:
+            if (player.superPower > 0) {
+                this.durability -= 1;
+                player.superPower -= 1;
+                player.updateSuperPower();
+                if (this.durability <= 0) {
+                    elements[0].style.backgroundPosition = spriteToBP(6, 7);
+                    makeInner();
+                    elements[1].style.backgroundPosition = spriteToBP(6, 4);
+                }
+            }
+            break;
+        case floorType.floorWithDoor:
+            if (player.superPower > 0) {
+                player.superPower -= 1;
+                player.updateSuperPower();
+                this.durability -= 2.5;
+                if (this.durability <= 0) {
+                    elements[1].style.backgroundPosition = spriteToBP(7, 4);
+                }
+            }
+            break;
+        case floorType.floorWithJug:
+            this.action();
+            break;
+        }
     };
     this.damage = function () {
         switch (this.getType()) {
         case floorType.lava:
-            return 10;
+            return 4;
         default:
             return 0;
         }
     };
     this.isAction = function () { //с этой клеткой можно произвести действие
         if (this.getType() === floorType.floorWithDoor || this.getType() === floorType.floorWithJug) {
-            return !actived;
+            return !this.actived;
         } else {
             return false;
         }
         
     };
+    function stopAnimation() {
+        if (animId !== null) {
+            window.cancelAnimationFrame(animId);
+            animId = null;
+        }
+    }
     startAnimation = function () {
-        var spY = 0, spX, animId = null;
-        if (type === floorType.floorWithDoor) {
+        var spY = 0,
+            spX,
+            nextFrame = 1,
+            oType = type;
+//        if (type === floorType.floorWithDoor) {
+//            spY = 1;
+//        } else if (type === floorType.floorWithJug) {
+//            spY = 3;
+//        }
+        if (animId !== null) {
+            return;
+        }
+        switch (type) {
+        case floorType.floorWithDoor:
             spY = 1;
-        } else if (type === floorType.floorWithJug) {
+            if (self.opened) {
+                spX = 6;
+                nextFrame = -1;
+            } else {
+                spX = 5;
+            }
+            break;
+        case floorType.floorWithJug:
             spY = 3;
+            spX = 5;
+            break;
+        case floorType.lava:
+            spY = 5;
+            spX = 7;
+            break;
+        case floorType.superPower:
+            spY = 13;
+            spX = 13;
+            break;
+        }
+//        spX = 5;
+//        if (type === floorType.floorWithDoor && self.opened) {
+//            spX = 6;
+//            nextFrame = -1;
+//        }
+        if (elements[1] !== undefined) {
+            elements[1].style.backgroundPosition = spriteToBP(spX, spY);
         }
         start = performance.now();
-        spX = 5;
-        elements[1].style.backgroundPosition = spriteToBP(spX, spY);
         animId = window.requestAnimationFrame(function anim(time) {
-            var dtime;
-            if (opened) {
+            var dtime, animTimeout = 100;
+/*            if (self.actived) {
+                return;
+            }*/
+            if (animId === null) {
                 return;
             }
+            switch (oType) {
+            case floorType.floorWithDoor:
+            case floorType.floorWithJug:
+                animTimeout = 100;
+                break;
+            case floorType.lava:
+                animTimeout = 500;
+                break;
+            case floorType.superPower:
+                animTimeout = 300;
+                break;
+            default:
+                animTimeout = 100;
+            }
             dtime = time - start;
-            if (dtime > 100) {
+            if (dtime > animTimeout) {
                 start = time;
-                spX += 1;
-                if (spX < 7) {
-                    elements[1].style.backgroundPosition = spriteToBP(spX, spY);
-                } else {
-                    opened = true;
-                    elements[1].style.backgroundPosition = spriteToBP(7, spY);
-                    window.cancelAnimationFrame(animId);
-                    return;
-                }
+                spX += nextFrame;
+                switch (oType) {
+                case floorType.floorWithJug:
+                case floorType.floorWithDoor:
+                    if (spX < 7 && spX > 4) {
+                        
+                        elements[1].style.backgroundPosition = spriteToBP(spX, spY);
+                    } else {
+                        self.opened = nextFrame === 1; //позволяет определить открыта или закрыта дверь
+                        // если анимация шла вперед то открыта если назад то закрыта
+//                        if (oType === floorType.floorWithJug) {
+//                            player.superPower += 5;
+//                            player.updateSuperPower();
+//                        }
+                        elements[1].style.backgroundPosition = spriteToBP(spX, spY);
+                        window.cancelAnimationFrame(animId);
+                        animId = null;
+                        if (oType === floorType.floorWithDoor) {
+                            self.actived = false;
+                        }
+                        return;
+                    }
+                    break;
+                case floorType.lava:
+                    if (spX > 8) {
+                        spX = 7;
+                    }
+                    if (elements[0] !== undefined) {
+                        elements[0].style.backgroundPosition = spriteToBP(spX, spY);
+                    }
+                    break;
+                case floorType.superPower:
+                    if (spX > 15) {
+                        spX = 13;
+                    }
+                    if (elements[1] !== undefined) {
+                        elements[1].style.backgroundPosition = spriteToBP(spX, spY);
+                    }
+                    break;
+                } // switch (oType)
             }
             animId = window.requestAnimationFrame(anim);
         });
@@ -195,7 +383,10 @@ function FloorObject(x, y, type) {
 //                    actived = true;
 //                }
 //            }
-            startAnimation();
+            if (!this.actived) {
+                this.actived = true;
+                startAnimation();
+            }
         }
     };
     this.computeSprite = function () {
@@ -212,27 +403,160 @@ function FloorObject(x, y, type) {
             } else if (y - 1 < 0 || !isWall(map.floorObjects[y - 1][x].getType())) {
                 elements[0].style.backgroundPosition = spriteToBP(11, 0);
             }
+        } else if (type === floorType.lava || type === floorType.superPower) {
+            startAnimation();
         }
+        
     };
     this.restory = function () {
+//        if (elements[1] !== undefined) {
+//            if (this.getType() === floorType.floorWithDoor) {
+//                elements[1].style.backgroundPosition = spriteToBP(4, 1);
+//                this.actived = false;
+//            } else if (this.getType() === floorType.floorWithJug) {
+//                elements[1].style.backgroundPosition = spriteToBP(4, 3);
+//                this.actived = false;
+//            }
+//        }
+        stopAnimation();
+        this.init();
+        this.computeSprite();
         if (elements[1] !== undefined) {
-            if (this.getType() === floorType.floorWithDoor) {
-                elements[1].style.backgroundPosition = spriteToBP(4, 1);
-                actived = false;
-            } else if (this.getType() === floorType.floorWithJug) {
-                elements[1].style.backgroundPosition = spriteToBP(4, 3);
-                actived = false;
+            elements[1].style.visibility = "visible";
+        }
+        if (type === floorType.wall) {
+            if (elements[1] !== undefined && elements[0] !== undefined) {
+                elements[0].removeChild(elements[1]);
+                elements[1] = undefined;
             }
         }
+//        switch (type) {
+//                case this.getType()
+//        }
     };
+        
 }
 	
 var player = {
     x: 0,
     y: 0,
+    dx: 0, //смещение в пикселях
+    dy: 0,
+    maxHealth: 100,
+    health: 100,
+    healthLabel: null,
     element: null,
     direction: Direction.up,
     arrayForSprite: [],
+    superPower: 0,
+    superPowerLabel: null,
+    updateSuperPower: function () {
+        "use strict";
+        if (this.superPowerLabel !== null) {
+            this.superPowerLabel.textContent = "SuperPower: " + this.superPower;
+        }
+    },
+    setSprite: function (xOrBP, y) { // принимает или координаты или строку
+        "use strict";
+        if (this.element) {
+            if (typeof xOrBP === "string" && y === undefined) {
+                this.element.style.backgroundPosition = xOrBP;
+            } else if (typeof xOrBP === "number" && typeof y === "number") {
+                this.element.style.backgroundPosition = spriteToBP(xOrBP, y);
+            }
+        }
+    },
+    updateHealth: function () {
+        "use strict";
+        if (this.headLabel !== null) {
+            this.healthLabel.textContent = "Health: " + this.health + " %";
+        }
+    },
+    isDead: function () {
+        "use strict";
+        return this.health <= 0;
+    },
+    dead: function () {
+        "use strict";
+        /*todo закончить функцию смерти*/
+        this.setSprite(10, 10);
+        player.cancelAnimation();
+        setTimeout(function () { gameOver(true); }, 100);
+    },
+    damage: function (value) {
+        "use strict";
+        if (this.isDead()) {
+            return;
+        }
+        if (value !== undefined && value > 0) {
+            this.health -= value;
+            if (this.health < 0) {
+                this.health = 0;
+                this.dead();
+            }
+            this.updateHealth();
+        }
+    },
+    damageTimerId: null,
+    stopDamageTimer: function () {
+        "use strict";
+        if (this.damage !== null) {
+            clearTimeout(this.damageTimerId);
+            this.damageTimerId = null;
+        }
+    },
+    findDamage: function () { /*todo доделать функцию определяющую может ли персонаж получить урон*/
+        "use strict";
+        var x1, x2 = 0, y1, y2 = 0;
+        if (player.health <= 0) {
+            return 0;
+        }
+        x1 = player.x;
+        y1 = player.y;
+        if (player.dx < 0) {
+            x2 = -1;
+        } else if (player.dx > 0) {
+            x2 = 1;
+        }
+        if (player.dy < 0) {
+            y2 = -1;
+        } else if (player.dy > 0) {
+            y2 = 1;
+        }
+        if (x2 !== 0 || y2 !== 0) {
+            x2 += x1;
+            y2 += y1;
+            return Math.max(map.floorObjects[y2][x2].damage(), map.floorObjects[y1][x1].damage());
+        } else {
+            return map.floorObjects[y1][x1].damage();
+        }
+    },
+    startDamageTimer: function () { /*todo complate damage timer */
+        "use strict";
+        var d;
+        if (player.damageTimerId === null && !player.isDead()) {
+            player.damageTimerId = setTimeout(function tik() {
+                var d;
+                if (player.damageTimerId === null) {
+                    return;
+                }
+                if (player.health <= 0) {
+                    return;
+                }
+                d = player.findDamage();
+                if (d > 0) {
+                    player.damage(d);
+                    if (player.health > 0) {
+                        player.damageTimerId = setTimeout(tik, 500);
+                    } else {
+                        player.stopDamageTimer();
+                    }
+                } else {
+                    player.stopDamageTimer();
+                }
+            }, 500);
+        }
+    },
     canIMove: function (dir) {
         "use strict";
         if (dir === undefined) {
@@ -278,8 +602,11 @@ var player = {
     frame: 1,
     move: function (newDir) {
         "use strict";
-        var start, dx, dy;
+        var start;
         var dir;
+        if (player.health <= 0) {
+            return;
+        }
         if (newDir === undefined) {
             dir = this.direction;
         } else {
@@ -292,8 +619,8 @@ var player = {
     //if (true) { //if (this.canIMove(dir)) {
         if (this.animId === null) {
             this.newDirection = null;
-            dx = 0;
-            dy = 0;
+            player.dx = 0;
+            player.dy = 0;
             this.direction = dir;
             this.stopAndWalk = !this.canIMove();
             player.element.style.backgroundPosition = player.arrayForSprite[this.direction][player.frame];
@@ -310,9 +637,13 @@ var player = {
                 }
                 var dTime = time - oldTime;
                 var dir = player.direction;
+                var d = 0;
                 oldTime = time;
                 var ps = player.element.style;
                 if (player.animId === null) {
+                    return;
+                }
+                if (player.health <= 0) {
                     return;
                 }
                 if (player.stopAndWalk) {
@@ -328,15 +659,22 @@ var player = {
                     ps.backgroundPosition = player.arrayForSprite[dir][player.frame];
                 }
                 if (!player.stopAndWalk) {
-                    dx += dirToX(dir) * dTime * 0.1;
-                    dy += dirToY(dir) * dTime * 0.1;
+                    player.dx += dirToX(dir) * dTime * 0.1;
+                    player.dy += dirToY(dir) * dTime * 0.1;
                 }
-                if (Math.abs(dx) >= SW || Math.abs(dy) >= SH) {
+                if (Math.abs(player.dx) >= SW || Math.abs(player.dy) >= SH) { // сделан полный переход на клетку
                     //player.x += Math.floor(Math.abs(dx) / SW) * dirToX(dir);
                     //player.y += Math.floor(Math.abs(dy) / SH) * dirToY(dir);
                     player.x += dirToX(dir);
                     player.y += dirToY(dir);
+                    if (map.floorObjects[player.y][player.x].getType() === floorType.exit) {
+                        gameOver();
+                        return;
+                    }
                     map.posCamera();
+                    if (map.floorObjects[player.y][player.x].canCatchUp) {
+                        map.floorObjects[player.y][player.x].catchUp();
+                    }
                     //map.posCamera();
                     if (player.newStop) {
                         stopPlayer();
@@ -353,8 +691,13 @@ var player = {
                     } else if (dy < 0) {
                         dy += SH;
                     }*/
-                    dx = 0;
-                    dy = 0;
+                    player.dx = 0;
+                    player.dy = 0;
+                    d = player.findDamage();
+                    if (d > 0 && player.damageTimerId === null) {
+                        player.damage(d);
+                        player.startDamageTimer();
+                    }
                     if (player.newDirection !== null) {
                         dir = player.newDirection;
                         player.direction = dir;
@@ -365,18 +708,26 @@ var player = {
                         player.newDirection = null;
                     } else {
                         if (!player.stopAndWalk) {
-                            ps.left = Math.round(player.x * SW + dx) + "px";
-                            ps.top = Math.round(player.y * SH + dy) + "px";
+                            ps.left = Math.round(player.x * SW + player.dx) + "px";
+                            ps.top = Math.round(player.y * SH + player.dy) + "px";
                         }
                     }
                     //player.animationComplate();
                     //return;
                 } else {
                     if (!player.stopAndWalk) {
-                        ps.left = Math.round(player.x * SW + dx) + "px";
-                        ps.top = Math.round(player.y * SH + dy) + "px";
-                        map.posCamera(dx, dy);
+                        ps.left = Math.round(player.x * SW + player.dx) + "px";
+                        ps.top = Math.round(player.y * SH + player.dy) + "px";
+                        map.posCamera(player.dx, player.dy);
                     }
+                    d = player.findDamage();
+                    if (d > 0) {
+                        if (player.damageTimerId === null) {
+                            player.damage(d);
+                            player.startDamageTimer();
+                        }
+                    }
+                    
                 }
 
 
@@ -405,8 +756,6 @@ var player = {
         }
         /*this.changeSprite();
         map.posCamera();
-        if (map.floorObjects[Math.round(this.y)][Math.round(this.x)].getType() === floorType.exit) {
-            gameOver();
         }
         return true;*/
     //}
@@ -429,6 +778,10 @@ var player = {
                 arr[i] = spriteToBP(i, yCoord);
             }
         }
+        this.dx = 0;
+        this.dy = 0;
+        player.health = player.maxHealth;
+        player.superPower = 0;
         this.arrayForSprite[Direction.up] = [];
         setSprites(this.arrayForSprite[Direction.up], 11);
         this.arrayForSprite[Direction.down] = [];
@@ -437,7 +790,7 @@ var player = {
         setSprites(this.arrayForSprite[Direction.left], 9);
         this.arrayForSprite[Direction.right] = [];
         setSprites(this.arrayForSprite[Direction.right], 10);
-        var div;
+        var div, h;
         if (this.element === null) {
             div = document.createElement("div");
             this.element = div;
@@ -448,12 +801,42 @@ var player = {
             div.style.top = map.yToTop(this.y);
             
         }
-    },
+        if (this.healthLabel === null) {
+            h = document.createElement("span");
+            h.style.position = "absolute";
+            h.style.right = "30px";
+            h.style.top = "30px";
+            h.style.color = "red";
+            h.style.fontSize = "30px";
+            this.healthLabel = h;
+            document.body.appendChild(h);
+        }
+        this.updateHealth();
+        if (this.superPowerLabel === null) {
+            h = document.createElement("span");
+            h.style.position = "absolute";
+            h.style.right = "30px";
+            h.style.top = "70px";
+            h.style.color = "blue";
+            h.style.fontSize = "30px";
+            this.superPowerLabel = h;
+            document.body.appendChild(h);
+        }
+        this.updateSuperPower();
+
+        player.setPosition(PLAYER_X, PLAYER_Y);
+        player.setDirection(Direction.up);
+        
+    }, //initPlayer()
     changeSprite: function () {
         "use strict";
-        this.element.style.backgroundPosition = this.arrayForSprite[this.direction][0];
         this.element.style.left = map.xToLeft(this.x);
         this.element.style.top = map.yToTop(this.y);
+        if (player.health <= 0) {
+            this.setSprite(10, 10);
+        } else {
+            this.setSprite(this.arrayForSprite[this.direction][0]);
+        }
     },
     setPosition: function (x, y) {
         "use strict";
@@ -464,11 +847,27 @@ var player = {
     action: function () {
         "use strict";
         var ax, ay;
+        if (player.health <= 0) {
+            return;
+        }
         ax = Math.round(this.x + dirToX(this.direction));
         ay = Math.round(this.y + dirToY(this.direction));
         if (map.coordCorrect(ax, ay) && map.floorObjects[ay][ax].isAction()) {
             map.floorObjects[ay][ax].action();
         }
+    },
+    attack: function () {
+        "use strict";
+        var x, y;
+        if (player.health <= 0) {
+            return;
+        }
+        x = dirToX(this.direction) + this.x;
+        y = dirToY(this.direction) + this.y;
+        if (map.coordCorrect(x, y) && map.floorObjects[y][x].canAttack()) {
+            map.floorObjects[y][x].attacked();
+        }
+        
     }
 };
 
@@ -533,6 +932,7 @@ var map = {
             }
         }*/
         if (e.type === "keydown" && !e.repeat) {
+            //console.log(e.keyCode);
             switch (e.keyCode) {
             case 39:
             case 68:
@@ -558,7 +958,12 @@ var map = {
             case 69:
                 player.action();
                 break;
+            case 16:
+            case 81:
+                player.attack();
+                break;
             }
+            
         } else if (e.type === "keyup" && !e.repeat) {
             if (e.keyCode === this.lastCode) {
                 this.lastCode = null;
@@ -634,8 +1039,8 @@ var map = {
             }
         }
         player.initPlayer();
-        player.setPosition(PLAYER_X, PLAYER_Y);
-        player.setDirection(Direction.up);
+//        player.setPosition(PLAYER_X, PLAYER_Y);
+//        player.setDirection(Direction.up);
         this.posCamera();
         document.body.onkeydown = this.oKey;
         document.body.onkeyup = this.oKey;
@@ -643,10 +1048,11 @@ var map = {
     reinitMap: function () {
         "use strict";
         var i, j;
-        player.x = PLAYER_X;
-        player.y = PLAYER_Y;
-        player.direction = Direction.up;
-        player.changeSprite();
+//        player.x = PLAYER_X;
+//        player.y = PLAYER_Y;
+//        player.direction = Direction.up;
+//        player.changeSprite();
+        player.initPlayer();
         for (i = 0; i < this.height; i += 1) {
             for (j = 0; j < this.width; j += 1) {
                 this.floorObjects[i][j].restory();
@@ -656,9 +1062,15 @@ var map = {
     }
 };
 
-function gameOver() {
+function gameOver(dead) {
     "use strict";
-    if (confirm("Лабиринт пройден. Хотите начать с начала?")) {
+    var s;
+    if (dead !== true) {
+        s = "Лабиринт пройден. Хотите начать с начала?";
+    } else {
+        s = "Вы умерли. Хотите начать с начала";
+    }
+    if (confirm(s)) {
         map.reinitMap();
     }
 }
