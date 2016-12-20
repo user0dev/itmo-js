@@ -490,7 +490,7 @@ var player = {
         }
         if (value !== undefined && value > 0) {
             this.health -= value;
-            if (this.health < 0) {
+            if (this.health <= 0) {
                 this.health = 0;
                 this.dead();
             }
@@ -823,13 +823,16 @@ var player = {
             document.body.appendChild(h);
         }
         this.updateSuperPower();
-
+        this.cancelAnimation();
         player.setPosition(PLAYER_X, PLAYER_Y);
         player.setDirection(Direction.up);
         
     }, //initPlayer()
     changeSprite: function () {
         "use strict";
+        if (this.element === null || this.element === undefined) {
+            return;
+        }
         this.element.style.left = map.xToLeft(this.x);
         this.element.style.top = map.yToTop(this.y);
         if (player.health <= 0) {
