@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Генерация лабиринта</title>
+    <style>
+        #labyrinth {
+            border-collapse: collapse;
+        }
+        #labyrinth td {
+            width: 10px;
+            height: 10px;
+        }
+        .control {
+            float: left;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            margin-right: 20px;
+        }
+        .control label {
+            display: block;
+        }
+        .control label span {
+            width: 60px;
+            display: inline-block;
+        }
+        .withbutton {
+            text-align: center;
+        }
+        .control label, .withbutton {
+            margin-top: 10px;
+        }
+        .num {
+            width: 60px;
+        }
+        #labyrinth {
+        }
+        .cleared_lab tr:nth-child(even) td:nth-child(even):hover {
+            outline: 2px solid blue;
+            
+        }
+    </style>
+</head>
+<body>
+    <div class="control">
+        <label><span>Ширина</span><input class="num" type="number" id="inWidth" min="3" step="2" value="3"></label>
+        <label><span>Высота</span><input class="num" type="number" id="inHeight" min="3" step="2" value="3"></label>
+        <div class="withbutton"><input type="button" value="Очистить" id="clear"></div>
+        <div class="withbutton"><input type="button" value="Генерация" id="generate"></div>
+    </div>
+    <table id="labyrinth" class="cleared_lab"></table>
+    <script src="js/utils.js"></script>
+    <script src="js/main.js" type="text/javascript"></script>
+</body>
+</html>

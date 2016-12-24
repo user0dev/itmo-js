@@ -1,0 +1,62 @@
+.center {
+    width: 510px;
+    margin: 0 auto;
+    background-color: #FF9934;
+}
+
+
+#messages {
+    border-top: 1px solid black;
+    margin-top: 10px;
+    padding: 10px;
+}
+
+.center form {
+    clear: both;
+    padding: 10px;
+}
+.center form:after {
+  content: "";
+  display: table;
+  clear: both;
+}
+
+#send {
+    float: right;
+}
+#text {
+    width: 484px;
+    margin-bottom: 10px;
+    1margin: 10px;
+}
+.message {
+    border: 1px solid black;
+    position: relative;
+    min-height: 25px;
+    white-space: pre-wrap;
+}
+.message + .message {
+    margin-top: 10px;
+}
+
+.message div {
+    border: 1px solid black;
+    position: absolute;
+    display: block;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    line-height: 20px;
+    text-align: center;
+    top: 1px;
+    right: 1px;
+    background-color: white;
+}
+.message div:hover {
+    background-color: aqua;
+    
+}
+
+body {
+    background-color: #019DD8;
+}
