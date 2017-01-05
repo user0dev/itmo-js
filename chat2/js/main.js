@@ -16,8 +16,24 @@ function getRoot(id) {
     "use strict";
 }
 
-var divObj = {tag:}
+var objDir = {
+    
+};
 
+var renderSection = {
+    objDir: {
+    
+    },
+    relation: function (parent, child) {
+        "use strict";
+    },
+    getRoot: function (id) {
+        "use strict";
+    },
+    newElement: function (tag, attr, text) {
+        "use strict";
+    }
+};
 
 function deleteMessage(e) {
     "use strict";

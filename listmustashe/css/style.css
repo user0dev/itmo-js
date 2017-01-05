@@ -1,0 +1,47 @@
+#productList {
+    width: 800px;
+    margin: 0 auto;
+}
+
+.product img {
+    width: 100px;
+    height: 100px;
+    float: left;
+}
+
+.product .name {
+    float: left;
+    font-size: 14px;
+    margin-left: 30px;
+    margin-top: 20px;
+}
+
+.product + .product {
+    border-top: 1px solid black;
+}
+.product .cost {
+    float: right;
+    font-size: 18px;
+}
+.product input {
+/*
+    float: right;    
+    margin-top: 40px;
+*/
+    position: absolute;
+    right: 10px;
+    bottom: 10px;
+}
+
+.product {
+    clear: both;
+    padding: 10px;
+    position: relative;
+}
+.product:after {
+    content: "";
+    height: 0;
+    visibility: hidden;
+    display: block;
+    clear: both;
+}
